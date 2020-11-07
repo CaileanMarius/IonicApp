@@ -2,7 +2,8 @@ import React from 'react';
 import { Redirect, Route } from 'react-router-dom';
 import { IonApp, IonRouterOutlet } from '@ionic/react';
 import { IonReactRouter } from '@ionic/react-router';
-import Home from './pages/Home';
+import { VideoGameEdit, VideoGamesList } from './todo';
+import {VideoGameProvider} from './todo/VideoGameProvider';
 
 /* Core CSS required for Ionic components to work properly */
 import '@ionic/react/css/core.css';
@@ -23,15 +24,21 @@ import '@ionic/react/css/display.css';
 /* Theme variables */
 import './theme/variables.css';
 
+
 const App: React.FC = () => (
   <IonApp>
-    <IonReactRouter>
-      <IonRouterOutlet>
-        <Route path="/home" component={Home} exact={true} />
-        <Route exact path="/" render={() => <Redirect to="/home" />} />
-      </IonRouterOutlet>
-    </IonReactRouter>
+    <VideoGameProvider>
+      <IonReactRouter>
+        <IonRouterOutlet>
+          <Route path="/videogames" component={VideoGamesList} exact={true} />
+          <Route path="/videogame" component={VideoGameEdit} exact={true} />
+          <Route path="/videogame/:id" component={VideoGameEdit} exact={true} />
+          <Route exact path="/" render={() => <Redirect to="/videogames" />} />
+        </IonRouterOutlet>
+      </IonReactRouter>
+    </VideoGameProvider>
   </IonApp>
 );
+
 
 export default App;
