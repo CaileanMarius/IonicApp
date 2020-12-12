@@ -4,6 +4,7 @@ import { IonApp, IonRouterOutlet } from '@ionic/react';
 import { IonReactRouter } from '@ionic/react-router';
 import { VideoGameEdit, VideoGamesList } from './todo';
 import {VideoGameProvider} from './todo/VideoGameProvider';
+import {AuthProvider,Login, PrivateRoute} from './auth'
 
 /* Core CSS required for Ionic components to work properly */
 import '@ionic/react/css/core.css';
@@ -27,16 +28,20 @@ import './theme/variables.css';
 
 const App: React.FC = () => (
   <IonApp>
-    <VideoGameProvider>
-      <IonReactRouter>
-        <IonRouterOutlet>
-          <Route path="/videogames" component={VideoGamesList} exact={true} />
-          <Route path="/videogame" component={VideoGameEdit} exact={true} />
-          <Route path="/videogame/:id" component={VideoGameEdit} exact={true} />
-          <Route exact path="/" render={() => <Redirect to="/videogames" />} />
-        </IonRouterOutlet>
-      </IonReactRouter>
-    </VideoGameProvider>
+    <IonReactRouter>
+      <IonRouterOutlet>
+        <AuthProvider>
+          <Route path="/login" component={Login} exact={true}/>
+          <VideoGameProvider>
+
+          <PrivateRoute path="/videogames" component={VideoGamesList} exact={true} />
+          <PrivateRoute path="/videogame" component={VideoGameEdit} exact={true} />
+          <PrivateRoute path="/videogame/:id" component={VideoGameEdit} exact={true} />
+        </VideoGameProvider>
+        <Route exact path="/" render={() => <Redirect to="/videogames"/>}/>
+      </AuthProvider>
+    </IonRouterOutlet>
+    </IonReactRouter>  
   </IonApp>
 );
 

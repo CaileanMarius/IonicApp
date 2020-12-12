@@ -1,72 +1,109 @@
 import axios from 'axios';
-import {getLogger} from '../core';
+import { authConfig, baseUrl, getLogger, withLogs } from '../core';
 import {VideoGameProps} from './VideoGamesProps'
 
-const log = getLogger('videoGameApi');
+import {Plugins} from "@capacitor/core";
+const {Storage} = Plugins;
 
-const baseUrl = 'localhost:3000';
-const videogameUrl =`http://${baseUrl}/videogame`;
+const videogameUrl =`http://${baseUrl}/api/videogame`;
 
-interface ResponseProps<T>{
-    data: T;
-}
-
-function  withLogs<T>(promise: Promise<ResponseProps<T>>, fnName: string): Promise<T>{
-    log(`${fnName} - started`);
-  return promise
-    .then(res => {
-      log(`${fnName} - succeeded`);
-      return Promise.resolve(res.data);
-    })
-    .catch(err => {
-      log(`${fnName} - failed`);
-      return Promise.reject(err);
+export const getVideoGames: (token: string) => Promise<VideoGameProps[]> = token =>{
+    
+    var result = axios.get(videogameUrl, authConfig(token));
+    result.then(function(result){
+      result.data.forEach(async (videogame: VideoGameProps) => {
+        await Storage.set({
+          key: videogame._id!,
+          value: JSON.stringify({
+            videogame
+          }),
+        });
+      });
     });
+    return withLogs(result, "getVideoGames");
+
 }
 
-const config = {
-    headers:{
-        'Content-Type': 'application/json'
-    }
-};
 
-export const getVideoGames: () => Promise<VideoGameProps[]> = () =>{
-    return withLogs(axios.get(videogameUrl, config),'getVideoGames');
+export const getVideoGame: (token: string, id: string) => Promise<VideoGameProps> = (token, id) =>{
+  var result = axios.get(`${videogameUrl}/${id}`, authConfig(token))
+  return withLogs(result, "getVideoGame");
 }
 
-export const createVideoGame: (videogame: VideoGameProps) => Promise<VideoGameProps[]> = videogame => {
-    return withLogs(axios.post(videogameUrl, videogame, config), 'createVideoGame');
+
+export const createVideoGame: (token: string, videogame: VideoGameProps) => Promise<VideoGameProps> = (token,videogame) => {
+  var result = axios.post(videogameUrl, videogame,  authConfig(token));
+    result.then( async function(result){
+      var videogame = result.data;
+      await Storage.set({
+        key: videogame._id!,
+        value: JSON.stringify({
+          videogame
+        }),
+      });
+    });
+    return withLogs(result, "createVideoGame");
+ //   return withLogs(axios.post(videogameUrl, videogame, authConfig(token)), 'createVideoGame');
   }
   
-  export const updateVideoGame: (videogame: VideoGameProps) => Promise<VideoGameProps[]> = videogame => {
-    return withLogs(axios.put(`${videogameUrl}/${videogame.id}`, videogame, config), 'updateVideoGame');
+  export const updateVideoGame: (token: string, videogame: VideoGameProps) => Promise<VideoGameProps> = (token,videogame) => {
+    
+    console.log("TOKEN: "+token);
+    var result = axios.put(`${videogameUrl}/${videogame._id}`, videogame, authConfig(token));
+    result
+        .then(async function (result){
+        var videogame = result.data;
+        await Storage.set({
+            key: videogame._id!,
+            value: JSON.stringify(videogame),
+        });
+    })
+        .catch((error) => {
+            console.log(error);
+    });
+    return withLogs(result, "updateVideoGame");
+    //return withLogs(axios.put(`${videogameUrl}/${videogame._id}`, videogame, authConfig(token)), 'updateVideoGame');
   }
+
+  export const eraseVideoGame: (token: string, videogame: VideoGameProps) => Promise<VideoGameProps[]> = (token, videogame) =>{
+
+    var result = axios.delete(`${videogameUrl}/${videogame._id}`, authConfig(token));
+    result.then(async function (r){
+      await Storage.remove({key: videogame._id!});
+    });
+    return withLogs(result, "deleteVideoGame");
+
+  }
+
 
   interface MessageData{
-      event: string;
-      payload: {
-          videogame: VideoGameProps;
-      };
+      type: string;
+      payload: VideoGameProps;
   }
 
-  export const newWebSocket = (onMessage: (data: MessageData) => void) =>{
-     const ws = new WebSocket(`ws://${baseUrl}`)
-     ws.onopen = () =>{
-         log('web socket onopen');
-     };
-     ws.onclose = () =>{
-         log('web socket onclose');
-     };
-     ws.onerror = error =>{
-         log('web socket onerror ');
-     };
-     ws.onmessage = messageEvent =>
-     {
-         log('web socket onmessage');
-         onMessage(JSON.parse(messageEvent.data));
-     };
-     return () =>{
-         ws.close();
-     }
+  const log = getLogger('ws');
 
-  }
+
+  export const newWebSocket = (
+    token: string,
+    onMessage: (data: MessageData) => void
+) => {
+  const ws = new WebSocket(`ws://${baseUrl}`);
+  ws.onopen = () => {
+    log("web socket onopen");
+    ws.send(JSON.stringify({ type: "authorization", payload: { token } }));
+  };
+  ws.onclose = () => {
+    log("web socket onclose");
+  };
+  ws.onerror = (error) => {
+    log("web socket onerror", error);
+  };
+  ws.onmessage = (messageEvent) => {
+    log("web socket onmessage");
+    onMessage(JSON.parse(messageEvent.data));
+  };
+  return () => {
+    ws.close();
+  };
+};

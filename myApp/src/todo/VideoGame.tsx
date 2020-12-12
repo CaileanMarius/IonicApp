@@ -1,15 +1,16 @@
 import React from 'react';
-import {IonItem, IonLabel} from '@ionic/react';
+import {IonItem, IonLabel,  IonImg} from '@ionic/react';
 import {VideoGameProps} from './VideoGamesProps'
 
 interface VideoGamesExt extends VideoGameProps {
-    onEdit: (id?: string) => void;
+    onEdit: (_id?: string) => void;
   }
   
-  const VideoGame: React.FC<VideoGamesExt> = ({ id, description, year, type, rating, onEdit }) => {
+  const VideoGame: React.FC<VideoGamesExt> = ({ _id, description, year, type, rating, photoPath, onEdit }) => {
     return (
-      <IonItem onClick={() => onEdit(id)}>
-        <IonLabel>{description}</IonLabel>
+      <IonItem onClick={() => onEdit(_id)}>
+        <IonLabel>Name: {description}  rating: {rating}</IonLabel>
+        <IonLabel><IonImg style={{width: "100px"}} alt={"No Photo"} src={photoPath}/></IonLabel>
       </IonItem>
     );
   };
